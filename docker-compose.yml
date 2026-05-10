@@ -1,0 +1,128 @@
+x-app-env: &app-env
+  APP_ENV: "${APP_ENV:-docker}"
+  PROJECT_NAME: "${PROJECT_NAME:-Task Manager}"
+  API_V1_PREFIX: "${API_V1_PREFIX:-/api/v1}"
+  CORS_ORIGINS: "${CORS_ORIGINS:-*}"
+  TIMEZONE: "${TIMEZONE:-Europe/Kiev}"
+  DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://task_manager:task_manager@postgres:5432/task_manager}"
+  REDIS_URL: "${REDIS_URL:-redis://redis:6379/0}"
+  CELERY_BROKER_URL: "${CELERY_BROKER_URL:-amqp://guest:guest@rabbitmq:5672//}"
+  CELERY_RESULT_BACKEND: "${CELERY_RESULT_BACKEND:-redis://redis:6379/1}"
+  BOT_TOKEN: "${BOT_TOKEN:-}"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-task_manager}
+      POSTGRES_USER: ${POSTGRES_USER:-task_manager}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-task_manager}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment: *app-env
+    command: sh -c "alembic upgrade head && uvicorn src.main:app --host 0.0.0.0 --port 8000"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health').read()",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment: *app-env
+    command: python -m src.bot.app
+    depends_on:
+      api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment: *app-env
+    command: celery -A src.worker.celery_app worker --loglevel=info
+    depends_on:
+      api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment: *app-env
+    command: celery -A src.worker.celery_app beat --loglevel=info
+    depends_on:
+      api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./src/frontend:/usr/share/nginx/html:ro
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  postgres-data:

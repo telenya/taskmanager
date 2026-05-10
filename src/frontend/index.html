@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Task Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="min-h-screen bg-[#f4f1ea] text-stone-950">
+    <main class="mx-auto grid max-w-7xl gap-5 px-4 py-5 lg:grid-cols-[360px_1fr]">
+      <aside class="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <h1 class="text-xl font-semibold tracking-normal">Task Manager</h1>
+            <p class="mt-1 text-sm text-stone-500">Пользователи и задачи</p>
+          </div>
+          <span class="rounded-md bg-emerald-50 px-2.5 py-1 text-sm font-medium text-emerald-700">API</span>
+        </div>
+
+        <form id="user-form" class="mt-5 space-y-3">
+          <label class="block text-sm font-medium text-stone-700">
+            Telegram ID
+            <input
+              id="tg-id"
+              class="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-stone-950 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              type="number"
+              min="1"
+              required
+            />
+          </label>
+          <label class="block text-sm font-medium text-stone-700">
+            Username
+            <input
+              id="username"
+              class="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-stone-950 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              type="text"
+              maxlength="64"
+              placeholder="kelonchik"
+            />
+          </label>
+          <button
+            class="w-full rounded-md bg-stone-950 px-3 py-2.5 font-medium text-white transition hover:bg-stone-800"
+            type="submit"
+          >
+            Войти или создать
+          </button>
+        </form>
+
+        <div class="mt-5 border-t border-stone-200 pt-4">
+          <div class="text-xs font-semibold uppercase text-stone-400">Текущий пользователь</div>
+          <div id="current-user" class="mt-2 rounded-md bg-stone-100 px-3 py-2 text-sm font-medium text-stone-700">
+            Не выбран
+          </div>
+        </div>
+
+        <div class="mt-5">
+          <div class="mb-2 flex items-center justify-between">
+            <h2 class="font-semibold">Пользователи</h2>
+            <button id="refresh-users" class="text-sm font-medium text-emerald-700 hover:text-emerald-600" type="button">
+              Обновить
+            </button>
+          </div>
+          <div id="users" class="space-y-2"></div>
+        </div>
+      </aside>
+
+      <section class="space-y-5">
+        <div class="grid gap-3 md:grid-cols-3">
+          <div class="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+            <div class="text-sm text-stone-500">Всего задач</div>
+            <div id="metric-total" class="mt-2 text-3xl font-semibold">0</div>
+          </div>
+          <div class="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+            <div class="text-sm text-stone-500">В работе</div>
+            <div id="metric-progress" class="mt-2 text-3xl font-semibold text-blue-700">0</div>
+          </div>
+          <div class="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+            <div class="text-sm text-stone-500">Готово</div>
+            <div id="metric-done" class="mt-2 text-3xl font-semibold text-emerald-700">0</div>
+          </div>
+        </div>
+
+        <form id="task-form" class="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-lg font-semibold">Новая задача</h2>
+            <button
+              class="rounded-md bg-emerald-600 px-4 py-2 font-medium text-white transition hover:bg-emerald-500"
+              type="submit"
+            >
+              Добавить
+            </button>
+          </div>
+          <div class="mt-4 grid gap-3 md:grid-cols-2">
+            <label class="block text-sm font-medium text-stone-700">
+              Название
+              <input
+                id="task-title"
+                class="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-stone-950 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                type="text"
+                maxlength="200"
+                placeholder="Подготовить демо"
+                required
+              />
+            </label>
+            <label class="block text-sm font-medium text-stone-700">
+              Дедлайн
+              <input
+                id="task-deadline"
+                class="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-stone-950 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                type="datetime-local"
+                required
+              />
+            </label>
+          </div>
+          <label class="mt-3 block text-sm font-medium text-stone-700">
+            Описание
+            <textarea
+              id="task-description"
+              class="mt-1 min-h-24 w-full resize-y rounded-md border border-stone-300 bg-white px-3 py-2 text-stone-950 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              maxlength="2000"
+              placeholder="Что нужно сделать"
+            ></textarea>
+          </label>
+        </form>
+
+        <div class="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+          <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 class="text-lg font-semibold">Задачи</h2>
+              <div id="task-subtitle" class="mt-1 text-sm text-stone-500">Выберите пользователя</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <select
+                id="status-filter"
+                class="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              >
+                <option value="">Все статусы</option>
+                <option value="pending">Ожидают</option>
+                <option value="in_progress">В работе</option>
+                <option value="done">Готово</option>
+              </select>
+              <button id="refresh-tasks" class="rounded-md border border-stone-300 px-3 py-2 text-sm font-medium" type="button">
+                Обновить
+              </button>
+            </div>
+          </div>
+          <div id="tasks" class="grid gap-3"></div>
+        </div>
+      </section>
+    </main>
+
+    <div
+      id="toast"
+      class="fixed bottom-4 right-4 hidden max-w-sm rounded-md bg-stone-950 px-4 py-3 text-sm text-white shadow-lg"
+    ></div>
+
+    <script>
+      const apiBase = "/api/v1";
+      let currentUser = null;
+      let lastTasks = [];
+
+      const elements = {
+        currentUser: document.querySelector("#current-user"),
+        users: document.querySelector("#users"),
+        tasks: document.querySelector("#tasks"),
+        toast: document.querySelector("#toast"),
+        statusFilter: document.querySelector("#status-filter"),
+        taskSubtitle: document.querySelector("#task-subtitle"),
+        metricTotal: document.querySelector("#metric-total"),
+        metricProgress: document.querySelector("#metric-progress"),
+        metricDone: document.querySelector("#metric-done"),
+      };
+
+      async function request(path, options = {}) {
+        const response = await fetch(`${apiBase}${path}`, {
+          headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+          ...options,
+        });
+        if (response.status === 204) return null;
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || "Запрос не выполнен");
+        return data;
+      }
+
+      function showToast(message, tone = "error") {
+        elements.toast.textContent = message;
+        elements.toast.className =
+          "fixed bottom-4 right-4 max-w-sm rounded-md px-4 py-3 text-sm text-white shadow-lg";
+        elements.toast.classList.add(tone === "success" ? "bg-emerald-700" : "bg-stone-950");
+        setTimeout(() => elements.toast.classList.add("hidden"), 3500);
+      }
+
+      function showError(error) {
+        showToast(error.message || String(error));
+      }
+
+      function setCurrentUser(user) {
+        currentUser = user;
+        elements.currentUser.textContent = user ? `#${user.id} @${user.username || "без_username"}` : "Не выбран";
+        renderUsersActiveState();
+      }
+
+      async function loadUsers() {
+        const data = await request("/users");
+        elements.users.innerHTML = "";
+        if (!data.items.length) {
+          elements.users.innerHTML = emptyState("Пользователей пока нет");
+          return;
+        }
+        data.items.forEach((user) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.dataset.userId = user.id;
+          button.className = userButtonClass(user);
+          button.innerHTML = `
+            <div class="flex items-center justify-between gap-3">
+              <span class="font-medium">@${escapeHtml(user.username || "без_username")}</span>
+              <span class="text-xs text-stone-400">#${user.id}</span>
+            </div>
+            <div class="mt-1 text-xs text-stone-500">tg:${user.tg_id}</div>
+          `;
+          button.addEventListener("click", () => {
+            setCurrentUser(user);
+            loadTasks().catch(showError);
+          });
+          elements.users.append(button);
+        });
+      }
+
+      function renderUsersActiveState() {
+        document.querySelectorAll("[data-user-id]").forEach((button) => {
+          const id = Number(button.dataset.userId);
+          button.className = userButtonClass({ id });
+        });
+      }
+
+      function userButtonClass(user) {
+        const active = currentUser && Number(currentUser.id) === Number(user.id);
+        return [
+          "w-full rounded-md border px-3 py-2 text-left text-sm transition",
+          active
+            ? "border-emerald-500 bg-emerald-50 text-emerald-950"
+            : "border-stone-200 bg-stone-50 text-stone-800 hover:border-emerald-300",
+        ].join(" ");
+      }
+
+      async function loadTasks() {
+        if (!currentUser) {
+          lastTasks = [];
+          updateMetrics();
+          elements.taskSubtitle.textContent = "Выберите пользователя";
+          elements.tasks.innerHTML = emptyState("Выберите пользователя слева");
+          return;
+        }
+        const status = elements.statusFilter.value;
+        const query = new URLSearchParams({ creator_id: currentUser.id });
+        if (status) query.set("status", status);
+        const data = await request(`/tasks?${query.toString()}`);
+        lastTasks = data.items;
+        elements.taskSubtitle.textContent = `Пользователь #${currentUser.id}`;
+        updateMetrics();
+        renderTasks(data.items);
+      }
+
+      function updateMetrics() {
+        elements.metricTotal.textContent = lastTasks.length;
+        elements.metricProgress.textContent = lastTasks.filter((task) => task.status === "in_progress").length;
+        elements.metricDone.textContent = lastTasks.filter((task) => task.status === "done").length;
+      }
+
+      function renderTasks(tasks) {
+        elements.tasks.innerHTML = "";
+        if (!tasks.length) {
+          elements.tasks.innerHTML = emptyState("Задач по текущему фильтру нет");
+          return;
+        }
+        tasks.forEach((task) => {
+          const article = document.createElement("article");
+          article.className = "rounded-lg border border-stone-200 bg-stone-50 p-4";
+          article.innerHTML = `
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div class="min-w-0">
+                <h3 class="break-words font-semibold">${escapeHtml(task.title)}</h3>
+                <p class="mt-1 break-words text-sm text-stone-600">${escapeHtml(task.description || "")}</p>
+              </div>
+              <span class="${statusBadgeClass(task.status)}">${statusLabel(task.status)}</span>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-2 text-sm text-stone-500">
+              <span>Дедлайн: ${new Date(task.deadline).toLocaleString()}</span>
+              <span>Создана: ${new Date(task.created_at).toLocaleDateString()}</span>
+            </div>
+            <div class="mt-4 flex flex-wrap gap-2">
+              <button data-status="pending" class="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm font-medium">Ожидает</button>
+              <button data-status="in_progress" class="rounded-md border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-800">В работу</button>
+              <button data-status="done" class="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white">Готово</button>
+              <button data-delete class="rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700">Удалить</button>
+            </div>
+          `;
+          article.querySelectorAll("[data-status]").forEach((button) => {
+            button.addEventListener("click", async () => {
+              await request(`/tasks/${task.id}/status`, {
+                method: "PATCH",
+                body: JSON.stringify({
+                  actor_user_id: currentUser.id,
+                  status: button.dataset.status,
+                }),
+              });
+              showToast("Статус обновлен", "success");
+              await loadTasks();
+            });
+          });
+          article.querySelector("[data-delete]").addEventListener("click", async () => {
+            await request(`/tasks/${task.id}`, { method: "DELETE" });
+            showToast("Задача удалена", "success");
+            await loadTasks();
+          });
+          elements.tasks.append(article);
+        });
+      }
+
+      function statusBadgeClass(status) {
+        const base = "rounded-md px-2.5 py-1 text-xs font-semibold";
+        const colors = {
+          pending: "bg-stone-200 text-stone-700",
+          in_progress: "bg-blue-100 text-blue-800",
+          done: "bg-emerald-100 text-emerald-800",
+        };
+        return `${base} ${colors[status] || colors.pending}`;
+      }
+
+      function statusLabel(status) {
+        return {
+          pending: "Ожидает",
+          in_progress: "В работе",
+          done: "Готово",
+        }[status] || status;
+      }
+
+      function emptyState(text) {
+        return `<div class="rounded-md border border-dashed border-stone-300 bg-stone-50 px-4 py-8 text-center text-sm text-stone-500">${text}</div>`;
+      }
+
+      function escapeHtml(value) {
+        return value.replace(/[&<>"']/g, (char) => {
+          const entities = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" };
+          return entities[char];
+        });
+      }
+
+      document.querySelector("#user-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        try {
+          const payload = {
+            tg_id: Number(document.querySelector("#tg-id").value),
+            username: document.querySelector("#username").value || null,
+          };
+          let user;
+          try {
+            user = await request("/users", { method: "POST", body: JSON.stringify(payload) });
+          } catch (error) {
+            if (!error.message.includes("already exists")) throw error;
+            user = await request(`/users/by-tg/${payload.tg_id}`);
+          }
+          setCurrentUser(user);
+          await loadUsers();
+          await loadTasks();
+          showToast("Пользователь выбран", "success");
+        } catch (error) {
+          showError(error);
+        }
+      });
+
+      document.querySelector("#task-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        try {
+          if (!currentUser) throw new Error("Сначала выберите пользователя");
+          const deadlineInput = document.querySelector("#task-deadline").value;
+          await request("/tasks", {
+            method: "POST",
+            body: JSON.stringify({
+              title: document.querySelector("#task-title").value,
+              description: document.querySelector("#task-description").value || null,
+              deadline: new Date(deadlineInput).toISOString(),
+              creator_id: currentUser.id,
+            }),
+          });
+          event.target.reset();
+          showToast("Задача создана", "success");
+          await loadTasks();
+        } catch (error) {
+          showError(error);
+        }
+      });
+
+      document.querySelector("#refresh-users").addEventListener("click", () => loadUsers().catch(showError));
+      document.querySelector("#refresh-tasks").addEventListener("click", () => loadTasks().catch(showError));
+      elements.statusFilter.addEventListener("change", () => loadTasks().catch(showError));
+
+      loadUsers().catch(showError);
+      loadTasks().catch(showError);
+    </script>
+  </body>
+</html>

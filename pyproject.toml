@@ -1,0 +1,39 @@
+[project]
+name = "task-manager-backend"
+version = "0.1.0"
+description = "DDD-lite Task Manager backend with FastAPI, Aiogram, SQLAlchemy, and Celery."
+requires-python = ">=3.12"
+dependencies = [
+    "aiogram>=3.13.1,<4.0.0",
+    "alembic>=1.13.2,<2.0.0",
+    "asyncpg>=0.29.0,<1.0.0",
+    "celery>=5.4.0,<6.0.0",
+    "fastapi>=0.115.0,<1.0.0",
+    "greenlet>=3.0.3,<4.0.0",
+    "pydantic>=2.8.0,<3.0.0",
+    "pydantic-settings>=2.4.0,<3.0.0",
+    "redis>=5.0.8,<6.0.0",
+    "sqlalchemy>=2.0.32,<3.0.0",
+    "uvicorn[standard]>=0.30.6,<1.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.6.3,<1.0.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["src", "alembic"]
+
+[tool.ruff.lint]
+select = ["ASYNC", "B", "C4", "E", "F", "I", "UP", "W"]
+ignore = ["B008"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
